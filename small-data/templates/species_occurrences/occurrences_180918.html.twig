@@ -1,0 +1,235 @@
+{% extends 'base.html.twig' %}
+
+{% block head_scripts %}
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.3/dist/leaflet.css"
+          integrity="sha512-Rksm5RenBEKSKFjgI3a41vrjkw4EVPlJ3+OiI65vTjIdo9brlAacEuKOiQ5OFh7cOI1bkDwLqdLw3Zg0cRJAAQ=="
+          crossorigin=""/>
+    <!-- Make sure you put this AFTER Leaflet's CSS -->
+    <script src="https://unpkg.com/leaflet@1.3.3/dist/leaflet.js"
+            integrity="sha512-tAGcCfR4Sc5ZP5ZoVz0quoZDYX5aCtEm/eu1KhSLj2c9eFrylXZknQYmxUssFaVJKvvc0dJQixhGjG2yXWiV9Q=="
+            crossorigin=""></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.48.0/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.48.0/mapbox-gl.js'></script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+{% endblock %}
+
+
+{% block body %}
+    <h1>Occurrences for <i>{{ singleSpecies.speciesNameWorms }}</i></h1>
+    {#<a href="{{ path('occurrence_create', {'id':singleSpecies.wormsAphiaId } )}}" class="btn btn-primary">Create a new occurrence</a>#}
+
+                {#POSITION OF THE MAP#}
+                <div id="map_for_occurrences" style="height:400px; width:700px"></div>
+                  {#Position of the chart#}
+                  <div id="histogram" class="col" style="height:300px; width:400px;"></div>
+                  <p>Geographical and temporal distribution of records</p>
+
+    </div>
+
+
+
+    <a href="{{ path('occurrence_create', {'wormsAphiaId':singleSpecies.wormsAphiaId } )}}" class="btn btn-primary">Create a new occurrence</a>
+<table>
+
+    <tr>
+        <th>Date  </th>
+        <th>Locality  </th>
+        <th></th>
+        <th>Latitude  </th>
+        <th>Longitude  </th>
+        {#<th>Species (WoRMS)</th>#}
+        <th>Creation time </th>
+        <th>Author</th>
+        <th></th>
+        <th></th>
+
+
+    </tr>
+
+    {% for occurrence in occurrences %}
+        {% if  occurrence.isValidated %}
+        {% if occurrence.species == singleSpecies %}
+    <tr>
+        <td>{{occurrence.eventDate | date ('d/m/Y') }}</td>
+        <td>{{ occurrence.locality }}</td>
+        <td><a href="#" id="id{{ occurrence.id }}" class="btn btn-primary">Highlight</a></td>
+        <td>{{ occurrence.decimalLatitude }}</td>
+        <td>{{ occurrence.decimalLongitude }}</td>
+        {#<td>{{ occurrence.species.speciesNameWorms }}</td>#}
+        <td>{{ occurrence.occurrenceCreatedAt | date ('Y/m/d H:i') }}</td>
+        <td>{{ occurrence.inputter.firstName | striptags |first }}. {{ occurrence.inputter.lastName }}</td>
+            {% if  (app.user  ==  occurrence.inputter) or (is_granted ('ROLE_VALIDATOR')) %}
+        <td><a href="{{ path('occurrence_edit', {'idOccurrence':occurrence.id, 'wormsAphiaId': singleSpecies.wormsAphiaId  } )}}" class="btn btn-primary">Edit</a></td>
+            {% else %}
+                <td></td>
+                {% endif %}
+        <td><a href="{{ path('occurrence_details', {'idOccurrence':occurrence.id, 'wormsAphiaId': singleSpecies.wormsAphiaId  } )}}" class="btn btn-primary">More</a></td>
+
+    </tr>
+        {% endif %}
+        {% endif %}
+    {% endfor %}
+</table>
+
+    <script>
+        var year = [
+            {% for occurrence in occurrences %}
+            {% if occurrence.isValidated %}
+            {% if occurrence.species == singleSpecies %}
+            {% if loop.index0 != 0 %},{% endif %}
+            {{ occurrence.eventDate | date ('Y')}}
+            {% endif %}
+            {% endif %}
+            {% endfor %}
+
+        ];
+
+        var trace = {
+            x: year,
+            type: 'histogram'
+        };
+        var data = [trace];
+        var layout = {
+            title: "Occurrences of  {{ singleSpecies.speciesNameWorms }}",
+            xaxis:{title: "Year"},
+            yaxis:{title: "Number of occurrences"}
+        };
+        Plotly.newPlot('histogram', data, layout);
+
+    </script>
+
+    <script>
+
+
+            var optionsMap = {
+                zoom:3,
+                center: [50,0]
+            };
+
+
+
+            var mapForOccurrences = L.map('map_for_occurrences', optionsMap);
+            L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+                attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+                maxZoom: 20,
+                id: 'mapbox.streets',
+                accessToken: 'pk.eyJ1IjoiZm1pbmV1ciIsImEiOiJjamwzdGk3ZzYwaGY4M3dtcTFvcmpzNWt0In0.eDKRO3APxmefQb1H-gaT2A'
+            }).addTo(mapForOccurrences);
+
+            var myIcon = L.icon({
+
+                iconUrl: '{{ asset('images/red.png') }}',
+                // shadowUrl: 'leaf-shadow.png',
+
+                iconSize:     [12, 12], // size of the icon
+                // shadowSize:   [50, 64], // size of the shadow
+                iconAnchor:   [0, 0], // point of the icon which will correspond to marker's location
+                // shadowAnchor: [4, 62],  // the same for the shadow
+                popupAnchor:  [9, 2] // point from which the popup should open relative to the iconAnchor
+            });
+
+            var LeafIcon = L.Icon.extend({
+                options: {
+                    iconSize:     [10, 10],
+                    iconAnchor:   [9, 9],
+                    popupAnchor:  [9, 2]
+                }
+            });
+            //See http://colorbrewer2.org/#type=diverging&scheme=RdYlGn&n=8
+            var icon0 = new LeafIcon({iconUrl: '{{ asset('images/cb0.png') }}'}),
+                icon1 = new LeafIcon({iconUrl: '{{ asset('images/cb1.png') }}'}),
+                icon2 = new LeafIcon({iconUrl: '{{ asset('images/cb2.png') }}'}),
+                icon3 = new LeafIcon({iconUrl: '{{ asset('images/cb3.png') }}'}),
+                icon4 = new LeafIcon({iconUrl: '{{ asset('images/cb4.png') }}'}),
+                icon5 = new LeafIcon({iconUrl: '{{ asset('images/cb5.png') }}'}),
+                icon6 = new LeafIcon({iconUrl: '{{ asset('images/cb6.png') }}'}),
+                icon7 = new LeafIcon({iconUrl: '{{ asset('images/cb7.png') }}'});
+
+            var markers = [];
+            {% for intervalWithFreqAndOccurrences in intervalsWithFreqAndOccurrences %}
+            {% set nameForIcon = 'icon' ~ loop.index0 %}
+            {% for occurrence in intervalWithFreqAndOccurrences.2 %}
+            {% if occurrence.isValidated %}
+            {% if occurrence.species == singleSpecies %}
+            var marker = L.marker([{{ occurrence.decimalLatitude }}, {{ occurrence.decimalLongitude }}], {title: "id{{ occurrence.id }}", icon:{{ nameForIcon}} })
+                .addTo(mapForOccurrences)
+                .bindPopup("<p>{{ occurrence.locality }}</p><p>{{ occurrence.eventDate | date ('Y')  }}</p>");
+            markers.push (marker);
+
+            {% endif %}
+            {% endif %}
+            {% endfor %}
+            {% endfor %}
+
+
+
+
+            {#{% for intervalWithFreqAndOccurrences in intervalsWithFreqAndOccurrences %}#}
+            {#var arrayIntervals = [];#}
+            {#{% for occurrence in intervalWithFreqAndOccurrences.2 %}#}
+
+            {#var latitude = {{ occurrence.eventDate | date ("Y") }};#}
+                {#arrayIntervals.push(latitude);#}
+
+            {#{% endfor %}#}
+            {#console.log(arrayIntervals);#}
+            {#{% endfor %}#}
+
+
+            // WORKING BIT
+            {#var markers = [];#}
+            {#{% for occurrence in occurrences %}#}
+            {#{% if occurrence.isValidated %}#}
+            {#{% if occurrence.species == singleSpecies %} //https://stackoverflow.com/questions/12149233/concatenate-a-dynamic-variable-name-in-javascript#}
+
+            {#var marker = L.marker([{{ occurrence.decimalLatitude }}, {{ occurrence.decimalLongitude }}], {title: "id{{ occurrence.id }}", icon:myIcon})#}
+                {#.addTo(mapForOccurrences)#}
+                {#.bindPopup("<p>{{ occurrence.locality }}</p><p>{{ occurrence.eventDate | date ('Y')  }}</p>");#}
+
+            {#markers.push (marker);#}
+            {#{% endif %}#}
+            {#{% endif %}#}
+            {#{% endfor %}#}
+            {#// console.log(markers);#}
+
+            function markerFunction(id){
+                for (var i in markers){
+                    var markerID = markers[i].options.title;
+
+
+                    if (markerID == id){
+                        var position = markers[i].getLatLng();
+                        // console.log(position);
+                        // var newPosition = new
+                        // console.log
+                        // mapForOccurrences.SetView(position, 5);
+
+                        markers[i].openPopup();
+                        // mapForOccurrences.panTo(position, 18);
+                        mapForOccurrences.flyTo(position, 7);
+                    };
+                }
+            }
+
+            $("a").click(function(){
+                markerFunction($(this)[0].id);
+            });
+
+
+
+
+
+    </script>
+
+
+
+{% endblock %}
+
+
+
+
+
+
+

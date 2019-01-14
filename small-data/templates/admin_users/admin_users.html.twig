@@ -1,0 +1,85 @@
+{% extends 'base.html.twig' %}
+
+{% block head_scripts %}
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.16/css/jquery.dataTables.min.css">
+
+{% endblock %}
+{% block body %}
+
+    <h3>Users registered to the systems</h3>
+    <table class="table-hover table-bordered display" id="mydatatable">
+        <thead>
+        <tr>
+            <th>Last name</th>
+            <th>First name</th>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Validator</th>
+            <th>Expertise</th>
+            <th>Administrator</th>
+            {#<th></th>#}
+
+        </tr>
+        </thead>
+        <tbody>
+    {% for inputter in inputters %}
+        <tr>
+            <td>{{ inputter.lastName }}</td>
+            <td>{{ inputter.firstName }}</td>
+            <td>{{ inputter.username }}</td>
+            <td>{% if 'ROLE_INPUTTER' in inputter.getRoles %}Inputter{% endif %}<br>
+                {% if 'ROLE_VALIDATOR' in inputter.getRoles %}Validator{% endif %}<br>
+                {% if 'ROLE_ADMINISTRATOR' in inputter.getRoles %}Administrator{% endif %}<br>
+
+
+            </td>
+            <td>{% if 'ROLE_VALIDATOR' in inputter.roles %}Yes <a href="{{ path('edit_users_expertise', {'idInputter': inputter.id}) }}" class="btn btn-secondary">Modify</a>
+                    {% else %} No <a href="{{ path('edit_users_expertise', {'idInputter': inputter.id}) }}" class="btn btn-primary">Upgrade</a>
+                    {% endif %}</td>
+            <td>{% for phylum in phyla %}
+                {% if inputter in phylum.expertiseBy %}
+                    {{ phylum.phylumNameWorms }}<br>
+                    {% endif %}
+                {% endfor %}
+
+
+
+            </td>
+            <td>{% if 'ROLE_ADMINISTRATOR' in inputter.roles %}Yes {% else %}No {% endif %}</td>
+
+            {#<td>{% if not (inputter == app.user) %}#}
+                {#<a href="#" class="btn btn-primary">Remove</a>#}
+            {#{% endif %} </td>#}
+
+        </tr>
+    {% endfor %}
+        </tbody>
+    </table>
+
+{% endblock %}
+
+{% block scripts_bottom %}
+    {#https://datatables.net/manual/options#}
+    <script type="text/javascript" src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.19/js/dataTables.bootstrap4.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function(){
+            $('#mydatatable').DataTable ({
+                    {#https://datatables.net/manual/options#}
+                <script type="text/javascript" src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.10.19/js/dataTables.bootstrap4.min.js"></script>
+<script type="text/javascript">
+    $(document).ready(function(){
+        $('#mydatatable').DataTable ({
+            scrollY: 800,
+
+        } );
+
+
+
+    });
+</script>
+
+
+{% endblock %}
